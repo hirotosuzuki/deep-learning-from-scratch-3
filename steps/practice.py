@@ -11,10 +11,10 @@ class Variable:
         self.data = data
         self.grad = None
         self.creator = None
-
+    
     def set_creator(self, func):
         self.creator = func
-
+    
     def backward(self):
         if self.grad is None:
             self.grad = np.ones_like(self.data)
@@ -28,14 +28,12 @@ class Variable:
             if x.creator is not None:
                 funcs.append(x.creator)
 
-
 def as_array(x):
-    # xがnp.float64などのスカラーになっていた時は, 配列np.arrayに戻す
     if np.isscalar(x):
         return np.array(x)
     return x
 
-
+    
 class Function:
     def __call__(self, input):
         x = input.data
@@ -47,26 +45,28 @@ class Function:
         return output
 
     def forward(self, x):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def backward(self, gy):
-        raise NotImplementedError()
-
+        raise NotImplementedError
 
 class Square(Function):
     def forward(self, x):
-        y = x ** 2
-        return y
-
+        return x ** 2
+    
     def backward(self, gy):
         x = self.input.data
         gx = 2 * x * gy
         return gx
 
-
-def square(x):
-    return Square()(x)
-
+class Exp(Function):
+    def forward(self, x):
+        return np.exp(x)
+    
+    def backward(self, gy):
+        x = self.input.data
+        gx = np.exp(x) * gy
+        return gx
 
 def numerical_diff(f, x, eps=1e-4):
     x0 = Variable(x.data - eps)
@@ -75,37 +75,37 @@ def numerical_diff(f, x, eps=1e-4):
     y1 = f(x1)
     return (y1.data - y0.data) / (2 * eps)
 
+def square(x):
+    return Square()(x)
+
+def exp(x):
+    return Exp()(x)
+
 
 class SquareTest(unittest.TestCase):
-    """
-    python -m unittest steps/step10.py
-    python -m unittest discover tests
-    """
     def test_forward(self):
         x = Variable(np.array(2.0))
         y = square(x)
         expected = np.array(4.0)
         self.assertEqual(y.data, expected)
-
+    
     def test_backward(self):
         x = Variable(np.array(3.0))
         y = square(x)
         y.backward()
         expected = np.array(6.0)
         self.assertEqual(x.grad, expected)
-
+    
     def test_gradient_check(self):
-        """
-        数値微分とバックプロパゲーションによる微分とを比較
-
-        - np.allclose(a, b, rtol=1e-05, atol=1e-08)
-        aとbの全ての要素が
-        |a-b| <= (atol + rtol * |b|)
-        を満たすとTrueを返す
-        """
         x = Variable(np.random.rand(1))
         y = square(x)
         y.backward()
         num_grad = numerical_diff(square, x)
         flg = np.allclose(x.grad, num_grad)
         self.assertTrue(flg)
+
+
+x = Variable(np.array(0.5))
+y = square(exp(square(x)))
+y.backward()
+print(x.grad)

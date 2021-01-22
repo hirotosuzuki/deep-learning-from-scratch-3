@@ -5,6 +5,7 @@ class Variable:
     def __init__(self, data):
         if data is not None:
             if not isinstance(data, np.ndarray):
+                # np.ndarrayでない時はエラー
                 raise TypeError('{} is not supported'.format(type(data)))
 
         self.data = data
@@ -16,6 +17,7 @@ class Variable:
 
     def backward(self):
         if self.grad is None:
+            # 勾配の初期化
             self.grad = np.ones_like(self.data)
 
         funcs = [self.creator]
